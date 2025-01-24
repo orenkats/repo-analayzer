@@ -1,3 +1,4 @@
+import asyncio
 from src.services.github_client import GitHubClient
 from src.analyzers.dependency_analyzer import DependencyAnalyzer
 from src.utils.file_utils import save_text_to_file
@@ -7,7 +8,7 @@ import os
 import json
 
 
-def main():
+async def main():
     """
     Entry point of the application.
     """
@@ -43,25 +44,24 @@ def main():
     try:
         # Fetch the repository tree
         print(f"Fetching repository tree for {owner}/{repo} (branch: {branch})...")
-        repo_tree = github_client.fetch_repo_tree(owner, repo, branch=branch)
-        file_paths = [item['path'] for item in repo_tree if item['type'] == "blob"]
+        repo_tree = await github_client.fetch_repo_tree(owner, repo, branch=branch)
+        valid_files = [item["path"] for item in repo_tree if item["type"] == "blob"]
+        print(f"Repository tree fetched: {len(valid_files)} valid files identified: {valid_files}")
 
-        # Fetch content of all files and store in a dictionary
-        print("Fetching file contents...")
-        files = {}
-        for file_path in file_paths:
-            print(f"Fetching content for: {file_path}")
-            files[file_path] = github_client.fetch_file_content(owner, repo, file_path, branch)
+        # Fetch content of all files concurrently
+        print("Fetching file contents asynchronously...")
+        files = await github_client.fetch_all_file_contents(owner, repo, valid_files, branch)
+        print(f"Fetched contents for {len(files)} files.")
 
         # Analyze dependencies
         print("Analyzing dependencies...")
-        analyzer = DependencyAnalyzer(files)
+        analyzer = DependencyAnalyzer(files, valid_files)
         analyzer.analyze()
 
         # Export the dependency graph
         print("Exporting dependency graph...")
         dependency_graph_json = analyzer.export_graph(format="json")
-        os.makedirs("output", exist_ok=True)  # Ensure the output directory exists
+        os.makedirs("output", exist_ok=True)
         save_text_to_file(json.dumps(dependency_graph_json, indent=2), "output/dependency_graph.json")
 
         print("Dependency graph saved to 'output/dependency_graph.json'")
@@ -70,4 +70,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
