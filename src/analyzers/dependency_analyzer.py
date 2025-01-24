@@ -1,6 +1,7 @@
 from typing import Dict, List
 import networkx as nx
 from networkx.readwrite import json_graph
+from difflib import get_close_matches
 from .parsers.language_parsers import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
 
 
@@ -30,6 +31,8 @@ class DependencyAnalyzer:
         """
         self.files = files
         self.valid_files = valid_files
+        self.raw_dependencies = {}      # Stores raw dependencies from parsers
+        self.resolved_dependencies = {} # Stores resolved dependencies after mapping
         self.graph = nx.DiGraph()
 
         # Create a mapping of valid namespaces or file stems for matching
@@ -61,9 +64,23 @@ class DependencyAnalyzer:
 
     def analyze(self):
         """
-        Analyze dependencies and build a dependency graph.
+        Parse dependencies for all files and resolve them into a unified structure.
         """
         print("Starting dependency analysis...")
+
+        # Step 1: Parse raw dependencies for all files
+        self._parse_dependencies()
+
+        # Step 2: Resolve raw dependencies into actual file paths
+        self.resolve_dependencies()
+
+        # Step 3: Build the dependency graph
+        self.build_graph()
+
+    def _parse_dependencies(self):
+        """
+        Parse raw dependencies for all files using appropriate parsers.
+        """
         for file_path, content in self.files.items():
             ext = f".{file_path.split('.')[-1]}"
             parser = self.PARSERS.get(ext)
@@ -73,65 +90,81 @@ class DependencyAnalyzer:
 
             try:
                 print(f"Parsing dependencies for: {file_path}")
-                dependencies = parser.parse(content)
-                print(f"Dependencies found in {file_path}: {dependencies}")
-
-                mapped_deps = [
-                    self._resolve_dependency(dep) for dep in dependencies
-                ]
-                mapped_deps = [dep for dep in mapped_deps if dep and dep != "EXTERNAL"]
-
-                if not mapped_deps:
-                    print(f"No mapped dependencies found for {file_path}. Skipping.")
-                else:
-                    print(f"Mapped dependencies for {file_path}: {mapped_deps}")
-
-                for dep in mapped_deps:
-                    self.graph.add_edge(file_path, dep)
+                self.raw_dependencies[file_path] = parser.parse(content)
             except Exception as e:
                 print(f"Error parsing {file_path}: {e}")
+                self.raw_dependencies[file_path] = []
 
+    def resolve_dependencies(self):
+        """
+        Resolve raw dependencies into actual file paths using namespace mapping.
+        """
+        print("Resolving dependencies...")
+
+        for file_path, dependencies in self.raw_dependencies.items():
+            resolved = []
+
+            for dependency in dependencies:
+                resolved_path = self._resolve_dependency(dependency)
+                if resolved_path:
+                    resolved.append(resolved_path)
+                else:
+                    print(f"Unresolved dependency in {file_path}: {dependency}")
+
+            self.resolved_dependencies[file_path] = resolved
 
     def _resolve_dependency(self, dependency: str) -> str:
         """
-        Resolve a dependency to a file path using the namespace mapping.
+        Resolve a dependency to a file path using precomputed mappings and fuzzy matching.
 
         Args:
-            dependency (str): The dependency to resolve.
+            dependency (str): The raw dependency string.
 
         Returns:
-            str: The resolved file path or None if no match is found.
+            str: The resolved file path or None if not found.
         """
         # Attempt exact match
         if dependency in self.namespace_mapping:
             return self.namespace_mapping[dependency]
 
-        # Fuzzy match: Check if any namespace ends with the dependency
-        for namespace, file_path in self.namespace_mapping.items():
-            if namespace.endswith(dependency):
-                return file_path
+        # Fuzzy matching using difflib
+        candidates = get_close_matches(dependency, self.namespace_mapping.keys())
+        if candidates:
+            return self.namespace_mapping[candidates[0]]
 
-        # Fuzzy match: Check if the dependency maps to a directory structure
-        for namespace, file_path in self.namespace_mapping.items():
-            if dependency.replace(".", "/") in file_path:
-                return file_path
-
-        print(f"Unresolved dependency: {dependency}")
+        # No match found
         return None
 
-    def export_graph(self, format: str = "json") -> str:
+    def build_graph(self):
         """
-        Export the dependency graph in the desired format.
+        Build the dependency graph using resolved dependencies.
+        """
+        print("Building dependency graph...")
+        for file_path, resolved_deps in self.resolved_dependencies.items():
+            for dep in resolved_deps:
+                self.graph.add_edge(file_path, dep)
 
-        Args:
-            format (str): The export format. Currently supports "json".
+    def export_graph(self) -> Dict[str, Dict[str, List[str]]]:
+        """
+        Export the dependency graph in a readable JSON format.
 
         Returns:
-            str: The exported graph as a string in the chosen format.
-
-        Raises:
-            ValueError: If an unsupported format is provided.
+            Dict[str, Dict[str, List[str]]]: A structured representation of dependencies.
         """
-        if format == "json":
-            return json_graph.node_link_data(self.graph, edges="links")
-        raise ValueError(f"Unsupported format: {format}")
+        output = {}
+
+        for node in self.graph.nodes:
+            # Collect outgoing edges (dependencies)
+            depends_on = list(self.graph.successors(node))
+            
+            # Collect incoming edges (files using this file)
+            used_by = list(self.graph.predecessors(node))
+            
+            # Build the structured output
+            output[node] = {
+                "Depends On": depends_on,
+                "Used By": used_by
+            }
+
+        return output
+
