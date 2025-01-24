@@ -160,11 +160,11 @@ class DependencyAnalyzer:
             # Collect incoming edges (files using this file)
             used_by = list(self.graph.predecessors(node))
             
-            # Build the structured output
-            output[node] = {
-                "Depends On": depends_on,
-                "Used By": used_by
-            }
+            # Build the structured output, excluding empty "Used By"
+            output[node] = {"Depends On": depends_on}
+            if used_by:  # Only include "Used By" if it's not empty
+                output[node]["Used By"] = used_by
 
         return output
+
 

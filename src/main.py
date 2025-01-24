@@ -1,9 +1,10 @@
 import asyncio
 from config.env_loader import load_environment, get_github_token
-from services.github_client import GitHubClient
-from services.github_service import fetch_repository_data
-from services.dependency_service import analyze_and_export_dependencies
-from utils.filtering import filter_source_files
+from .integrations.github_client import GitHubClient
+from .services.github_service import fetch_repository_data
+from .services.dependency_service import analyze_and_export_dependencies
+from .utils.filtering import filter_source_files
+from .utils.git_utils import parse_git_url
 from config.settings import SOURCE_EXTENSIONS
 
 
@@ -21,7 +22,6 @@ async def main():
         repo_url = input("Enter the GitHub repository URL: ").strip()
 
         # Parse repository information
-        from utils.git_utils import parse_git_url
         repo_info = parse_git_url(repo_url)
         owner, repo, branch = repo_info["owner"], repo_info["repo"], repo_info["branch"]
 

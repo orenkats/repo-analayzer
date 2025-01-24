@@ -1,6 +1,6 @@
+from integrations.github_client import GitHubClient
 
-
-async def fetch_repository_data(github_client, owner: str, repo: str, branch: str) -> tuple:
+async def fetch_repository_data(github_client: GitHubClient, owner: str, repo: str, branch: str) -> tuple:
     """
     Fetch the repository tree and file contents.
 
