@@ -22,11 +22,11 @@ class GitHubClient:
         response.raise_for_status()
         return response.json().get("tree", [])
 
-    def fetch_file_content(self, owner: str, repo: str, path: str) -> str:
+    def fetch_file_content(self, owner: str, repo: str, path: str, branch: str = "main") -> str:
         """
         Fetch the content of a specific file in the repository.
         """
-        url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
+        url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.text

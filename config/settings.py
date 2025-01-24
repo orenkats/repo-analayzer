@@ -1,14 +1,13 @@
-import os
 from dotenv import load_dotenv
+import os
 
-# Load environment variables from .env file
-load_dotenv()
+# Load .env file
+env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(env_path)
 
-class Settings:
-    """
-    Application settings and configurations.
-    """
-    GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN", "")
-    OUTPUT_DIRECTORY = os.getenv("OUTPUT_DIRECTORY", "output")
+# Read environment variables
+GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
+OUTPUT_DIRECTORY = os.getenv("OUTPUT_DIRECTORY")
 
-settings = Settings()
+if not GITHUB_API_TOKEN:
+    raise ValueError("GitHub token not found. Please set it in the .env file.")
