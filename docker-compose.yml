@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  repo-analyzer:
+    build:
+      context: .
+    environment:
+      - GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
+      - OUTPUT_DIRECTORY=${OUTPUT_DIRECTORY}
+    volumes:
+      - ./output:/app/output
+    command: python src/main.py

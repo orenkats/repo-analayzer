@@ -1,0 +1,28 @@
+# Python-related files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.env
+
+# Output directory
+output/
+
+# Logs and system files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Coverage reports
+htmlcov/
+*.coverage
+
+# Docker files
+*.pid
