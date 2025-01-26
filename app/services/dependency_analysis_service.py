@@ -3,8 +3,8 @@ import json
 from typing import Dict, List
 import networkx as nx
 from networkx.readwrite import json_graph
-from src.infrastructure.redis_client import RedisClient
-from src.utils.parsing_utils import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
+from app.infrastructure.redis_client import RedisClient
+from app.utils.parsing_utils import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
 
 
 class DependencyAnalyzer:

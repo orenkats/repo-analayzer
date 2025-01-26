@@ -1,6 +1,6 @@
 from typing import List, Dict
 import asyncio
-from src.infrastructure.github_client import GitHubClient
+from app.infrastructure.github_client import GitHubClient
 
 
 class GitHubService:

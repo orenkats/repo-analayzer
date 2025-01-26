@@ -1,5 +1,5 @@
 from typing import Dict, List
-from src.infrastructure.redis_client import RedisClient
+from app.infrastructure.redis_client import RedisClient
 
 class BundleService:
     def __init__(self, repo_id: str, redis_client: RedisClient):

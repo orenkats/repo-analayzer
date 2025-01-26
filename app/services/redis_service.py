@@ -1,4 +1,4 @@
-from src.infrastructure.redis_client import RedisClient
+from app.infrastructure.redis_client import RedisClient
 
 class RedisService:
     def __init__(self, redis_client: RedisClient):
