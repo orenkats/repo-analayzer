@@ -1,7 +1,7 @@
 import pytest
 import requests
 from unittest.mock import patch
-from src.services.github_client import GitHubClient
+from infrastucture.github_client import GitHubClient
 
 @pytest.fixture
 def github_client():

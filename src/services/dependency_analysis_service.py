@@ -1,8 +1,11 @@
+import os
+import json
 from typing import Dict, List
 import networkx as nx
 from networkx.readwrite import json_graph
-from difflib import get_close_matches
-from .parsers.language_parsers import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
+from infrastructure.redis_client import RedisClient
+from utils.file_utils import save_text_to_file, read_text_from_file
+from utils.parsing_utils import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
 
 
 class DependencyAnalyzer:
@@ -128,6 +131,7 @@ class DependencyAnalyzer:
             return self.namespace_mapping[dependency]
 
         # Fuzzy matching using difflib
+        from difflib import get_close_matches
         candidates = get_close_matches(dependency, self.namespace_mapping.keys())
         if candidates:
             return self.namespace_mapping[candidates[0]]
@@ -160,11 +164,35 @@ class DependencyAnalyzer:
             # Collect incoming edges (files using this file)
             used_by = list(self.graph.predecessors(node))
             
-            # Build the structured output, excluding empty "Used By"
+            # Build the structured output
             output[node] = {"Depends On": depends_on}
-            if used_by:  # Only include "Used By" if it's not empty
+            if used_by:
                 output[node]["Used By"] = used_by
 
         return output
 
 
+async def analyze_and_export_dependencies(files: dict, valid_files: list, repo_id: str) -> Dict[str, Dict[str, List[str]]]:
+    """
+    Analyze dependencies and store the dependency graph in Redis.
+
+    Args:
+        files (dict): Dictionary of file paths and their content.
+        valid_files (list): List of valid file paths.
+        repo_id (str): Unique identifier for the repository.
+
+    Returns:
+        dict: The dependency graph.
+    """
+    print("Analyzing dependencies...")
+    analyzer = DependencyAnalyzer(files, valid_files)
+    analyzer.analyze()
+
+    dependency_graph = analyzer.export_graph()
+
+    # Save to Redis
+    redis_client = RedisClient()
+    redis_client.set_data(f"dependency_map:{repo_id}", dependency_graph)
+
+    print(f"Dependency graph saved to Redis under 'dependency_map:{repo_id}'.")
+    return dependency_graph

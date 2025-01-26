@@ -1,6 +1,25 @@
-import re
+from abc import ABC, abstractmethod
 from typing import List
-from .base_parser import BaseParser
+import re
+import ast
+
+class BaseParser(ABC):
+    """
+    Abstract base class for all parsers.
+    """
+
+    @abstractmethod
+    def parse(self, file_content: str) -> List[str]:
+        """
+        Parse a file's content and extract dependencies.
+
+        Args:
+            file_content (str): Content of the file as a string.
+
+        Returns:
+            List[str]: A list of dependencies.
+        """
+        pass
 
 
 class PythonParser(BaseParser):
@@ -9,17 +28,6 @@ class PythonParser(BaseParser):
     """
 
     def parse(self, file_content: str) -> List[str]:
-        """
-        Parse Python file content to extract dependencies.
-
-        Args:
-            file_content (str): Content of the Python file.
-
-        Returns:
-            List[str]: List of imported modules.
-        """
-        import ast
-
         tree = ast.parse(file_content)
         imports = []
         for node in ast.walk(tree):
@@ -37,15 +45,6 @@ class DotNetParser(BaseParser):
     """
 
     def parse(self, file_content: str) -> List[str]:
-        """
-        Parse .NET C# file content to extract dependencies.
-
-        Args:
-            file_content (str): Content of the C# file.
-
-        Returns:
-            List[str]: List of dependencies (using namespaces).
-        """
         dependencies = []
         for line in file_content.splitlines():
             match = re.match(r"^\s*using\s+([\w.]+);", line)
@@ -60,15 +59,6 @@ class JavaScriptParser(BaseParser):
     """
 
     def parse(self, file_content: str) -> List[str]:
-        """
-        Parse JavaScript/TypeScript file content to extract dependencies.
-
-        Args:
-            file_content (str): Content of the JavaScript/TypeScript file.
-
-        Returns:
-            List[str]: List of dependencies.
-        """
         dependencies = []
         for line in file_content.splitlines():
             match = re.match(r"^\s*import\s+.*\s+from\s+['\"](.+)['\"]", line)
@@ -83,15 +73,6 @@ class JavaParser(BaseParser):
     """
 
     def parse(self, file_content: str) -> List[str]:
-        """
-        Parse Java file content to extract dependencies.
-
-        Args:
-            file_content (str): Content of the Java file.
-
-        Returns:
-            List[str]: List of dependencies (import statements).
-        """
         dependencies = []
         for line in file_content.splitlines():
             match = re.match(r"^\s*import\s+([\w.]+);", line)
@@ -106,15 +87,6 @@ class CppParser(BaseParser):
     """
 
     def parse(self, file_content: str) -> List[str]:
-        """
-        Parse C++ file content to extract dependencies.
-
-        Args:
-            file_content (str): Content of the C++ file.
-
-        Returns:
-            List[str]: List of dependencies (#include directives).
-        """
         dependencies = []
         for line in file_content.splitlines():
             match = re.match(r'^\s*#include\s+[<"]([^">]+)[">]', line)

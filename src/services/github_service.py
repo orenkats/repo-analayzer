@@ -1,4 +1,4 @@
-from integrations.github_client import GitHubClient
+from infrastructure.github_client import GitHubClient
 
 async def fetch_repository_data(github_client: GitHubClient, owner: str, repo: str, branch: str) -> tuple:
     """
