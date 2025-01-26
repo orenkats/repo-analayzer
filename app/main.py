@@ -1,30 +1,47 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.api.routes import repo, bundle
-from app.config.env_loader import load_environment,get_github_token
+from app.config.env_loader import load_environment, get_github_token
 from app.infrastructure.github_client import GitHubClient
 from app.infrastructure.redis_client import RedisClient
-import sys
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def initialize_resources():
+    """
+    Initialize shared resources like GitHubClient and RedisClient.
+    """
+    await load_environment()
+    logger.info("Environment variables loaded.")
+    token = get_github_token()
+    logger.info("GitHub token retrieved.")
+    github_client = GitHubClient(token)
+    redis_client = RedisClient()
+    return github_client, redis_client
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Initializing environment...")
-    await load_environment()
-    print("Environment loaded.")
+    """
+    Lifespan context for managing app startup and shutdown.
+    """
+    logger.info("Initializing resources...")
+    github_client, redis_client = await initialize_resources()
 
-    token = get_github_token()
-    print(f"GitHub Token: {token}")
+    # Attach resources to app state
+    app.state.github_client = github_client
+    app.state.redis_client = redis_client
+    logger.info("Resources initialized successfully.")
 
-    app.state.github_client = GitHubClient(token)
-    app.state.redis_client = RedisClient()
-
-    print("Resources initialized.")
     yield
-    print("Cleaning up resources...")
 
+    # Cleanup resources
     await app.state.github_client.close()
-    print("GitHubClient session closed.")
+    logger.info("GitHubClient session closed.")
+    logger.info("App shutdown complete.")
 
 
 app = FastAPI(title="Repo Analyzer", lifespan=lifespan)
