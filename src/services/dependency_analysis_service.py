@@ -3,9 +3,8 @@ import json
 from typing import Dict, List
 import networkx as nx
 from networkx.readwrite import json_graph
-from infrastructure.redis_client import RedisClient
-from utils.file_utils import save_text_to_file, read_text_from_file
-from utils.parsing_utils import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
+from src.infrastructure.redis_client import RedisClient
+from src.utils.parsing_utils import PythonParser, DotNetParser, JavaScriptParser, CppParser, JavaParser
 
 
 class DependencyAnalyzer:
@@ -158,14 +157,16 @@ class DependencyAnalyzer:
         output = {}
 
         for node in self.graph.nodes:
+            # Initialize the node entry
+            output[node] = {}
+
             # Collect outgoing edges (dependencies)
             depends_on = list(self.graph.successors(node))
-            
+            if depends_on:
+                output[node]["Depends On"] = depends_on
+
             # Collect incoming edges (files using this file)
             used_by = list(self.graph.predecessors(node))
-            
-            # Build the structured output
-            output[node] = {"Depends On": depends_on}
             if used_by:
                 output[node]["Used By"] = used_by
 

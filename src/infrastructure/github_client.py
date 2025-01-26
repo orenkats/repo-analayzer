@@ -1,11 +1,9 @@
 import aiohttp
-import asyncio
-from typing import List, Dict
 
 
 class GitHubClient:
     """
-    A client to interact with GitHub's API for fetching repositories and their contents using asyncio.
+    A client to manage the connection with GitHub's API.
     """
 
     BASE_URL = "https://api.github.com"
@@ -15,52 +13,26 @@ class GitHubClient:
         Initialize the GitHubClient with a personal access token.
         """
         self.headers = {"Authorization": f"token {token}"} if token else {}
+        self.session = aiohttp.ClientSession(headers=self.headers)
 
-    async def fetch_repo_tree(self, owner: str, repo: str, branch: str = "main") -> List[Dict]:
+    async def get(self, url: str):
         """
-        Fetch the complete tree of a GitHub repository asynchronously.
+        Perform a GET request to the given URL.
         """
-        url = f"{self.BASE_URL}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                data = await response.json()
-                return data.get("tree", [])
+        async with self.session.get(url) as response:
+            response.raise_for_status()
+            return await response.json()
 
-    async def fetch_file_content(self, owner: str, repo: str, path: str, branch: str = "main") -> str:
+    async def fetch_raw(self, url: str):
         """
-        Fetch the content of a specific file in the repository asynchronously.
+        Perform a GET request to fetch raw file content.
         """
-        url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                return await response.text()
+        async with self.session.get(url) as response:
+            response.raise_for_status()
+            return await response.text()
 
-    async def fetch_all_file_contents(
-        self, owner: str, repo: str, file_paths: List[str], branch: str = "main"
-    ) -> Dict[str, str]:
+    async def close(self):
         """
-        Fetch contents of all files concurrently.
-
-        Args:
-            owner (str): Repository owner.
-            repo (str): Repository name.
-            file_paths (List[str]): List of file paths to fetch.
-            branch (str): Branch to fetch from.
-
-        Returns:
-            Dict[str, str]: A dictionary where keys are file paths and values are file contents.
+        Close the aiohttp.ClientSession when done.
         """
-        async def fetch_content(path):
-            try:
-                return path, await self.fetch_file_content(owner, repo, path, branch)
-            except Exception as e:
-                print(f"Failed to fetch {path}: {e}")
-                return path, None
-
-        tasks = [fetch_content(path) for path in file_paths]
-        results = await asyncio.gather(*tasks)
-
-        # Only keep successfully fetched files
-        return {path: content for path, content in results if content}
+        await self.session.close()
